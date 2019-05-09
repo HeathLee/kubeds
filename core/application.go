@@ -2,8 +2,11 @@ package core
 
 import (
 	"context"
+	"encoding/json"
 	"net"
+	"net/http"
 	"sync"
+
 	envoyApiV2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoyApiV2Core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
@@ -145,6 +148,21 @@ func (a *Application) RunXds() {
 	}
 }
 
+// RunDebugServer serve debug info
+func (a *Application) RunDebugServer() {
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		js, err := json.Marshal(a.snapshot)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+	})
+	http.ListenAndServe(":6667", nil)
+}
+
 // WatchEndpoints watch kubernetes endpoint changes
 func (a *Application) WatchEndpoints() {
 	// watch k8s cluster endpoints, and set set snapshot after changes
@@ -198,6 +216,7 @@ func (a *Application) WatchEndpoints() {
 func (a *Application) Serve() {
 	go a.RunXds()
 	go a.WatchEndpoints()
+	go a.RunDebugServer()
 	<-a.ctx.Done()
 	a.grpcServer.GracefulStop()
 }
