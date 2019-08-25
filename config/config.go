@@ -19,7 +19,7 @@ func LoadDefaultSettingsFor(v *viper.Viper) {
 	}
 	defaultKubeConfig := filepath.Join(home, ".kube", "config")
 
-	v.SetDefault("outCluster", true)
+	v.SetDefault("outCluster", false)
 	v.SetDefault("kubeConfigPath", defaultKubeConfig)
 	v.SetDefault("namespace", "")
 	v.SetDefault("xdsPort", 6666)
