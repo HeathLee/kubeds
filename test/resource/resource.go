@@ -18,7 +18,7 @@ package resource
 import (
 	"time"
 
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 )
 
@@ -31,6 +31,7 @@ const (
 
 // MakeCluster creates a cluster.
 func MakeCluster(ads bool, clusterName string) *v2.Cluster {
+	timeout := 5 * time.Second
 	var edsSource *core.ConfigSource
 	if ads {
 		edsSource = &core.ConfigSource{
@@ -50,9 +51,9 @@ func MakeCluster(ads bool, clusterName string) *v2.Cluster {
 	}
 
 	return &v2.Cluster{
-		Name:           clusterName,
-		ConnectTimeout: 5 * time.Second,
-		Type:           v2.Cluster_EDS,
+		Name:                 clusterName,
+		ConnectTimeout:       &timeout,
+		ClusterDiscoveryType: &v2.Cluster_Type{Type: v2.Cluster_EDS},
 		EdsClusterConfig: &v2.Cluster_EdsClusterConfig{
 			EdsConfig:   edsSource,
 			ServiceName: clusterName,

@@ -2,7 +2,7 @@ package core
 
 import (
 	"context"
-	"encoding/json"
+	"log"
 	"net"
 	"net/http"
 	"sync"
@@ -148,19 +148,15 @@ func (a *Application) RunXds() {
 	}
 }
 
-// RunDebugServer serve debug info
-func (a *Application) RunDebugServer() {
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		js, err := json.Marshal(a.snapshot)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+// RunGateway starts an HTTP gateway to an xDS server
+func (a *Application) RunGateway() {
+	log.Printf("gateway listening HTTP/1.1 on 6667")
+	server := &http.Server{Addr: ":16667", Handler: &xds.HTTPGateway{Server: a.server}}
+	go func() {
+		if err := server.ListenAndServe(); err != nil {
+			log.Println(err)
 		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(js)
-	})
-	http.ListenAndServe(":6667", nil)
+	}()
 }
 
 // WatchEndpoints watch kubernetes endpoint changes
@@ -216,7 +212,7 @@ func (a *Application) WatchEndpoints() {
 func (a *Application) Serve() {
 	go a.RunXds()
 	go a.WatchEndpoints()
-	go a.RunDebugServer()
+	go a.RunGateway()
 	<-a.ctx.Done()
 	a.grpcServer.GracefulStop()
 }
@@ -226,7 +222,7 @@ func (a *Application) Endpoints2ClusterLoadAssignment(endpoints *k8sApiV1Core.En
 	// clusterName format is "svcName.Namespace"
 	clusterName := getClusterNameByEndpoints(endpoints)
 
-	lbEndpoints := make([]endpoint.LbEndpoint, 0)
+	lbEndpoints := make([]*endpoint.LbEndpoint, 0)
 	for _, subset := range endpoints.Subsets {
 		for _, port := range subset.Ports {
 			for _, address := range subset.Addresses {
@@ -237,16 +233,18 @@ func (a *Application) Endpoints2ClusterLoadAssignment(endpoints *k8sApiV1Core.En
 				case k8sApiV1Core.ProtocolUDP:
 					protocol = envoyApiV2Core.UDP
 				}
-				lbEndpoints = append(lbEndpoints, endpoint.LbEndpoint{
+				lbEndpoints = append(lbEndpoints, &endpoint.LbEndpoint{
 					HealthStatus: healthStatus,
-					Endpoint: &endpoint.Endpoint{
-						Address: &envoyApiV2Core.Address{
-							Address: &envoyApiV2Core.Address_SocketAddress{
-								SocketAddress: &envoyApiV2Core.SocketAddress{
-									Protocol: protocol,
-									Address:  address.IP,
-									PortSpecifier: &envoyApiV2Core.SocketAddress_PortValue{
-										PortValue: uint32(port.Port),
+					HostIdentifier: &endpoint.LbEndpoint_Endpoint{
+						Endpoint: &endpoint.Endpoint{
+							Address: &envoyApiV2Core.Address{
+								Address: &envoyApiV2Core.Address_SocketAddress{
+									SocketAddress: &envoyApiV2Core.SocketAddress{
+										Protocol: protocol,
+										Address:  address.IP,
+										PortSpecifier: &envoyApiV2Core.SocketAddress_PortValue{
+											PortValue: uint32(port.Port),
+										},
 									},
 								},
 							},
@@ -264,7 +262,7 @@ func (a *Application) Endpoints2ClusterLoadAssignment(endpoints *k8sApiV1Core.En
 	}).Infoln("converted k8s endpoints to envoy cluster load assignment")
 	return &envoyApiV2.ClusterLoadAssignment{
 		ClusterName: clusterName,
-		Endpoints: []endpoint.LocalityLbEndpoints{{
+		Endpoints: []*endpoint.LocalityLbEndpoints{{
 			LbEndpoints: lbEndpoints,
 		}},
 	}

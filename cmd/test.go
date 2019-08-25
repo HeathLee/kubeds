@@ -34,7 +34,7 @@ var testCmd = &cobra.Command{
 		for _, svc := range services.Items {
 			clusterName := svc.Name + "." + svc.Namespace
 			cluster := resource.MakeCluster(app.Config.GetBool("ads"), clusterName)
-			bootstrap.StaticResources.Clusters = append(bootstrap.StaticResources.Clusters, *cluster)
+			bootstrap.StaticResources.Clusters = append(bootstrap.StaticResources.Clusters, cluster)
 		}
 
 		buf := &bytes.Buffer{}
