@@ -150,7 +150,7 @@ func (a *Application) RunXds() {
 
 // RunGateway starts an HTTP gateway to an xDS server
 func (a *Application) RunGateway() {
-	log.Printf("gateway listening HTTP/1.1 on 6667")
+	log.Printf("gateway listening HTTP/1.1 on 16667")
 	server := &http.Server{Addr: ":16667", Handler: &xds.HTTPGateway{Server: a.server}}
 	go func() {
 		if err := server.ListenAndServe(); err != nil {

@@ -24,5 +24,6 @@ func LoadDefaultSettingsFor(v *viper.Viper) {
 	v.SetDefault("namespace", "")
 	v.SetDefault("xdsPort", 6666)
 	v.SetDefault("ads", false)
-	v.SetDefault("logLevel", logrus.WarnLevel)
+	// v.SetDefault("logLevel", logrus.WarnLevel)
+	v.SetDefault("logLevel", logrus.DebugLevel)
 }
