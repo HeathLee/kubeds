@@ -1,7 +1,5 @@
 module github.com/shanbay/kubeds
 
-go 1.12
-
 require (
 	github.com/envoyproxy/go-control-plane v0.8.6
 	github.com/envoyproxy/protoc-gen-validate v0.1.0 // indirect
@@ -32,3 +30,5 @@ require (
 	k8s.io/client-go v0.0.0-20190620085101-78d2af792bab
 	k8s.io/utils v0.0.0-20190809000727-6c36bc71fc4a // indirect
 )
+
+go 1.13
